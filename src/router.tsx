@@ -1,69 +1,83 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom'
+import type { ComponentType } from 'react'
+import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom'
 import { RutaProtegida, RutaTutor } from './auth/RutaProtegida'
 import { useSesion } from './auth/useSesion'
+import { BarraCarga, CargaInicial } from './components/Carga'
 import { PortalLayout } from './layout/PortalLayout'
-import { Login } from './pages/Login'
-import { Registro } from './pages/Registro'
-import { InscripcionTutor } from './pages/InscripcionTutor'
-import { NoEncontrada } from './pages/NoEncontrada'
-import { CalendarioTutor } from './pages/tutor/Calendario'
-import { ArchivosTutor } from './pages/tutor/Archivos'
-import { ResenasTutor } from './pages/tutor/Resenas'
-import { PerfilTutor } from './pages/tutor/Perfil'
-import { Reservas } from './pages/alumno/Reservas'
-import { MisTutorias } from './pages/alumno/MisTutorias'
-import { ArchivosAlumno } from './pages/alumno/Archivos'
-import { Avisos } from './pages/alumno/Avisos'
-import { ResenasAlumno } from './pages/alumno/Resenas'
-import { Agente } from './pages/alumno/Agente'
-import { PerfilAlumno } from './pages/alumno/Perfil'
 
 /** `/`: al login sin sesión; con sesión, al último portal elegido. */
 function Inicio() {
   const sesion = useSesion()
   if (!sesion) return <Navigate to="/login" replace />
-  const portal = sesion.portal === 'tutor' && sesion.usuario.esTutor ? 'tutor' : 'alumno'
-  return <Navigate to={`/${portal}`} replace />
+  // RutaTutor manda al formulario de ramos si eligió tutor sin serlo.
+  return <Navigate to={`/${sesion.portal}`} replace />
+}
+
+/** Raíz: la barra de carga entre páginas y la página actual. */
+function Raiz() {
+  return (
+    <>
+      <BarraCarga />
+      <Outlet />
+    </>
+  )
+}
+
+/**
+ * Cada página se baja recién cuando se visita (code splitting); mientras
+ * tanto se muestra la barra de carga. `m` es el módulo y `nombre` su export.
+ */
+function pagina<M extends Record<string, unknown>>(importar: () => Promise<M>, nombre: keyof M) {
+  return async () => ({ Component: (await importar())[nombre] as ComponentType })
 }
 
 // Ninguna ruta puede empezar con /graphql ni /archivos: esas van al BFF.
 export const router = createBrowserRouter([
-  { path: '/', element: <Inicio /> },
-  { path: '/login', element: <Login /> },
-  { path: '/registro', element: <Registro /> },
   {
-    element: <RutaProtegida />,
+    element: <Raiz />,
+    hydrateFallbackElement: <CargaInicial />,
     children: [
-      { path: '/inscripcion-tutor', element: <InscripcionTutor /> },
+      { path: '/', element: <Inicio /> },
+      { path: '/login', lazy: pagina(() => import('./pages/Login'), 'Login') },
+      { path: '/registro', lazy: pagina(() => import('./pages/Registro'), 'Registro') },
       {
-        element: <RutaTutor />,
+        element: <RutaProtegida />,
         children: [
           {
-            path: '/tutor',
-            element: <PortalLayout portal="tutor" />,
+            path: '/inscripcion-tutor',
+            lazy: pagina(() => import('./pages/InscripcionTutor'), 'InscripcionTutor'),
+          },
+          {
+            element: <RutaTutor />,
             children: [
-              { index: true, element: <CalendarioTutor /> },
-              { path: 'archivos', element: <ArchivosTutor /> },
-              { path: 'resenas', element: <ResenasTutor /> },
-              { path: 'perfil', element: <PerfilTutor /> },
+              {
+                path: '/tutor',
+                element: <PortalLayout portal="tutor" />,
+                children: [
+                  { index: true, lazy: pagina(() => import('./pages/tutor/Calendario'), 'CalendarioTutor') },
+                  { path: 'archivos', lazy: pagina(() => import('./pages/tutor/Archivos'), 'ArchivosTutor') },
+                  { path: 'resenas', lazy: pagina(() => import('./pages/tutor/Resenas'), 'ResenasTutor') },
+                  { path: 'perfil', lazy: pagina(() => import('./pages/tutor/Perfil'), 'PerfilTutor') },
+                ],
+              },
+            ],
+          },
+          {
+            path: '/alumno',
+            element: <PortalLayout portal="alumno" />,
+            children: [
+              { index: true, lazy: pagina(() => import('./pages/alumno/Reservas'), 'Reservas') },
+              { path: 'tutorias', lazy: pagina(() => import('./pages/alumno/MisTutorias'), 'MisTutorias') },
+              { path: 'archivos', lazy: pagina(() => import('./pages/alumno/Archivos'), 'ArchivosAlumno') },
+              { path: 'avisos', lazy: pagina(() => import('./pages/alumno/Avisos'), 'Avisos') },
+              { path: 'resenas', lazy: pagina(() => import('./pages/alumno/Resenas'), 'ResenasAlumno') },
+              { path: 'agente', lazy: pagina(() => import('./pages/alumno/Agente'), 'Agente') },
+              { path: 'perfil', lazy: pagina(() => import('./pages/alumno/Perfil'), 'PerfilAlumno') },
             ],
           },
         ],
       },
-      {
-        path: '/alumno',
-        element: <PortalLayout portal="alumno" />,
-        children: [
-          { index: true, element: <Reservas /> },
-          { path: 'tutorias', element: <MisTutorias /> },
-          { path: 'archivos', element: <ArchivosAlumno /> },
-          { path: 'avisos', element: <Avisos /> },
-          { path: 'resenas', element: <ResenasAlumno /> },
-          { path: 'agente', element: <Agente /> },
-          { path: 'perfil', element: <PerfilAlumno /> },
-        ],
-      },
+      { path: '*', lazy: pagina(() => import('./pages/NoEncontrada'), 'NoEncontrada') },
     ],
   },
-  { path: '*', element: <NoEncontrada /> },
 ])

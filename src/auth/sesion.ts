@@ -2,18 +2,14 @@
 // Es un store externo a React para que el link de Apollo y las utilidades
 // de /archivos puedan leer el token y limpiarlo sin depender de componentes.
 
+import type { UsuarioSesionFragment } from '../gql/graphql'
+
 /**
- * Datos del usuario que guardamos al iniciar sesión.
- * Es un subconjunto de `Usuario` del BFF; cuando haya tipos generados
- * (`npm run codegen`), derivarlo del fragmento que use el login.
+ * Datos del usuario que guardamos al iniciar sesión (fragmento
+ * `UsuarioSesion` de `operaciones.ts`). `esTutor` solo decide qué portal
+ * se muestra; los permisos los valida el back.
  */
-export interface UsuarioSesion {
-  id: string
-  nombre: string
-  email: string
-  /** Solo decide qué portal se muestra; los permisos los valida el back. */
-  esTutor: boolean
-}
+export type UsuarioSesion = UsuarioSesionFragment
 
 export type Portal = 'tutor' | 'alumno'
 

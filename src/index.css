@@ -1,5 +1,121 @@
 @import "tailwindcss";
 
+/* Modo oscuro por clase en <html> (ver src/tema.ts). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Paleta de TutorMatch (DORFic: Daylight, Orange, Red, Futurism, Graphic).
+ * - marca:  naranjo rojizo cálido, el color principal.
+ * - tinta:  oscuros, a partir de #1E1A1D (tinta-800) y #1F0318 (tinta-900).
+ * - acento: azul #296EB4 (acento-500), para lo confirmado y los detalles.
+ * - sol:    amarillo cálido, para lo pendiente.
+ */
+@theme {
+  --color-marca-50: #fff6f0;
+  --color-marca-100: #ffe8d9;
+  --color-marca-200: #ffcdb0;
+  --color-marca-300: #ffa97d;
+  --color-marca-400: #fb7d4a;
+  --color-marca-500: #ef5a2a;
+  --color-marca-600: #d8431b;
+  --color-marca-700: #b33418;
+  --color-marca-800: #8f2c19;
+  --color-marca-900: #742717;
+
+  --color-tinta-50: #f6f3f4;
+  --color-tinta-100: #e9e3e5;
+  --color-tinta-200: #cfc5c9;
+  --color-tinta-300: #ab9fa4;
+  --color-tinta-400: #84777c;
+  --color-tinta-500: #5f5357;
+  --color-tinta-600: #443a3e;
+  --color-tinta-700: #2e272b;
+  --color-tinta-800: #1e1a1d;
+  --color-tinta-900: #1f0318;
+
+  --color-acento-50: #eef5fc;
+  --color-acento-100: #d7e7f7;
+  --color-acento-200: #afcfee;
+  --color-acento-300: #7eb0e1;
+  --color-acento-400: #4d8fcf;
+  --color-acento-500: #296eb4;
+  --color-acento-600: #215a95;
+  --color-acento-700: #1c4878;
+  --color-acento-800: #183a60;
+  --color-acento-900: #152f4d;
+
+  --color-sol-100: #fff1c9;
+  --color-sol-200: #ffe199;
+  --color-sol-300: #ffcd5c;
+  --color-sol-400: #f5b430;
+  --color-sol-800: #6b4300;
+
+  /* Sombras cálidas: brillo arriba (toque glossy) y sombra teñida abajo. */
+  --shadow-bloque:
+    inset 0 1px 0 rgb(255 255 255 / 0.35), 0 2px 4px rgb(116 39 23 / 0.08),
+    0 18px 40px -12px rgb(116 39 23 / 0.35);
+  --shadow-boton: 0 2px 0 rgb(0 0 0 / 0.15), 0 6px 14px -6px rgb(30 26 29 / 0.5);
+  --shadow-boton-hover: 0 3px 0 rgb(116 39 23 / 0.2), 0 10px 20px -8px rgb(116 39 23 / 0.5);
+
+  --animate-carga: carga 1.1s ease-in-out infinite;
+  --animate-entrar: entrar 0.25s ease-out;
+  @keyframes carga {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+  @keyframes entrar {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Colores con nombre de uso, que cambian solos en modo oscuro. */
+:root {
+  --fondo: var(--color-marca-50);
+  --superficie: #ffffff;
+  --texto: var(--color-tinta-800);
+  --texto-suave: var(--color-tinta-500);
+  --borde: var(--color-marca-100);
+  color-scheme: light;
+}
+.dark {
+  --fondo: var(--color-tinta-900);
+  --superficie: var(--color-tinta-800);
+  --texto: var(--color-marca-50);
+  --texto-suave: var(--color-tinta-300);
+  --borde: var(--color-tinta-700);
+  color-scheme: dark;
+}
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-borde: var(--borde);
+}
+
+/* Bloque de color con una gradiente suave. */
+@utility bloque-marca {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-marca-400) 55%, var(--color-marca-500)) 0%,
+    var(--color-marca-500) 50%,
+    color-mix(in oklab, var(--color-marca-600) 70%, var(--color-marca-500)) 100%
+  );
+  box-shadow: var(--shadow-bloque);
+  :where(.dark) & {
+    background-image: linear-gradient(
+      160deg,
+      var(--color-marca-600) 0%,
+      color-mix(in oklab, var(--color-marca-700) 60%, var(--color-marca-600)) 50%,
+      var(--color-marca-800) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 18px 40px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-fondo text-texto antialiased transition-colors;
 }

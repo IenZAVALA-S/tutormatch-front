@@ -1,6 +1,8 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { actualizarSesion, limpiarSesion, type Portal } from '../auth/sesion'
 import { useSesion } from '../auth/useSesion'
+import logo from '../assets/PLACEHOLDER.png'
+import { BotonTema } from '../components/BotonTema'
 
 interface Enlace {
   a: string
@@ -44,14 +46,11 @@ export function Topbar({ portal }: { portal: Portal }) {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white">
+    <header className="sticky top-0 z-10 border-b border-borde bg-superficie/80 shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-        <Link to={`/${portal}`} className="flex items-center gap-2 font-semibold text-indigo-700">
-          {/* Logo provisorio */}
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-indigo-600 text-sm text-white">
-            TM
-          </span>
-          TutorMatch
+        <Link to={`/${portal}`} className="flex items-center">
+          {/* Logo provisorio; ver LayoutPublico para el truco del fondo blanco */}
+          <img src={logo} alt="TutorMatch" className="h-10 w-auto mix-blend-multiply dark:invert dark:mix-blend-screen" />
         </Link>
 
         <nav className="flex flex-wrap gap-1">
@@ -62,7 +61,7 @@ export function Topbar({ portal }: { portal: Portal }) {
               end
               className={({ isActive }) =>
                 `rounded-md px-3 py-1.5 text-sm ${
-                  isActive ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-slate-600 hover:bg-slate-100'
+                  isActive ? 'bg-marca-100 font-medium text-marca-800 dark:bg-marca-900/60 dark:text-marca-200' : 'text-texto-suave hover:bg-marca-50 dark:hover:bg-tinta-700'
                 }`
               }
             >
@@ -73,15 +72,20 @@ export function Topbar({ portal }: { portal: Portal }) {
 
         <div className="ml-auto flex items-center gap-3 text-sm">
           {puedeCambiar && (
-            <button type="button" onClick={cambiarPortal} className="text-indigo-700 hover:underline">
+            <button
+              type="button"
+              onClick={cambiarPortal}
+              className="text-marca-700 underline-offset-2 hover:underline dark:text-marca-300"
+            >
               Ir al portal de {otroPortal}
             </button>
           )}
-          {sesion && <span className="text-slate-500">{sesion.usuario.nombre}</span>}
+          {sesion && <span className="text-texto-suave">{sesion.usuario.nombre}</span>}
+          <BotonTema />
           <button
             type="button"
             onClick={cerrarSesion}
-            className="rounded-md border border-slate-300 px-3 py-1.5 hover:bg-slate-100"
+            className="rounded-md border border-borde px-3 py-1.5 hover:bg-marca-50 dark:hover:bg-tinta-700"
           >
             Cerrar sesión
           </button>

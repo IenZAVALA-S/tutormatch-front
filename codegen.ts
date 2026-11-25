@@ -11,6 +11,8 @@ const config: CodegenConfig = {
   generates: {
     './src/gql/': {
       preset: 'client',
+      // Sin enmascarar fragmentos: los tipos de un fragmento se usan tal cual.
+      presetConfig: { fragmentMasking: false },
       config: {
         useTypeImports: true,
         enumsAsTypes: true,

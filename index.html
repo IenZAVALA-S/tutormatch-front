@@ -5,6 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TutorMatch</title>
+    <script>
+      // Aplica el modo oscuro antes de pintar, para que no parpadee (ver src/tema.ts).
+      try {
+        var t = localStorage.getItem('tutormatch.tema')
+        if (t === 'oscuro' || (t !== 'claro' && matchMedia('(prefers-color-scheme: dark)').matches))
+          document.documentElement.classList.add('dark')
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

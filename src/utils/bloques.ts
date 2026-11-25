@@ -4,6 +4,7 @@
 // porque el desfase cambia con el horario de verano.
 
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
+import { es } from 'date-fns/locale'
 
 export const ZONA_CHILE = 'America/Santiago'
 
@@ -91,6 +92,21 @@ export function bloqueDeInicio(inicio: Date | string): { fecha: FechaChile; bloq
 /** Hora de Chile para mostrar, por ejemplo `08:10`. */
 export function horaChile(instante: Date | string): string {
   return formatInTimeZone(instante, ZONA_CHILE, 'HH:mm')
+}
+
+/**
+ * Formatea un instante en hora de Chile y en español, con un patrón de
+ * date-fns. Ej.: `formatoChile(inicio, "EEE d 'de' MMM")` → "lun 24 de nov".
+ */
+export function formatoChile(instante: Date | string, patron: string): string {
+  return formatInTimeZone(instante, ZONA_CHILE, patron, { locale: es })
+}
+
+/** Descripción corta de un bloque: "lun 24 nov · B 09:55". */
+export function describirInicio(inicio: Date | string): string {
+  const info = bloqueDeInicio(inicio)
+  const dia = formatoChile(inicio, 'EEE d MMM')
+  return info ? `${dia} · ${info.bloque} ${BLOQUES[info.bloque]}` : `${dia} · ${horaChile(inicio)}`
 }
 
 /** Solo se aceptan casillas futuras. */
