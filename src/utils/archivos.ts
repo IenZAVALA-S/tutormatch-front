@@ -90,6 +90,19 @@ export async function descargarArchivo(id: string, nombreArchivo: string): Promi
   }
 }
 
+/** "2,4 MB", "350 KB". */
+export function tamanoLegible(bytes: number): string {
+  const formato = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 })
+  if (bytes >= 1024 * 1024) return `${formato.format(bytes / (1024 * 1024))} MB`
+  if (bytes >= 1024) return `${formato.format(bytes / 1024)} KB`
+  return `${bytes} B`
+}
+
+/** "PDF", "PNG" o "JPEG". */
+export function etiquetaTipo(tipoMime: string): string {
+  return { 'application/pdf': 'PDF', 'image/png': 'PNG', 'image/jpeg': 'JPEG' }[tipoMime] ?? tipoMime
+}
+
 /** Valida tipo y tamaño antes de subir. Devuelve el mensaje de error o null. */
 export function validarArchivo(archivo: File): string | null {
   if (!(TIPOS_PERMITIDOS as readonly string[]).includes(archivo.type)) {

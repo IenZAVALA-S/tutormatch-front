@@ -1,18 +1,28 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react'
 
-// Piezas de formulario para los bloques de color sólido (login, registro).
+// Piezas de formulario: para los bloques de color (login, registro) y para
+// los modales y tarjetas que usan el tema del fondo.
 
 /**
  * - `bloque`: campo teñido sobre el bloque naranjo (login).
  * - `blanco`: campo blanco que contrasta con el bloque (registro).
+ * - `superficie`: campo sobre una tarjeta o modal, según el tema.
  */
-export type VarianteCampo = 'bloque' | 'blanco'
+export type VarianteCampo = 'bloque' | 'blanco' | 'superficie'
 
 const ESTILO_CAMPO: Record<VarianteCampo, string> = {
   bloque:
     'bg-marca-600 text-white placeholder:text-marca-200 border-marca-400 focus:border-white focus:ring-white/40 dark:bg-marca-800 dark:border-marca-600',
   blanco:
     'bg-white text-tinta-800 placeholder:text-tinta-400 border-white focus:border-tinta-800 focus:ring-tinta-800/20 dark:bg-tinta-800 dark:text-marca-50 dark:border-tinta-700 dark:focus:border-marca-200 dark:focus:ring-marca-200/20',
+  superficie:
+    'bg-fondo text-texto placeholder:text-tinta-300 border-borde focus:border-marca-400 focus:ring-marca-200/50 dark:placeholder:text-tinta-500 dark:focus:ring-marca-800/50',
+}
+
+const ESTILO_ETIQUETA: Record<VarianteCampo, string> = {
+  bloque: 'text-white',
+  blanco: 'text-white',
+  superficie: 'text-texto',
 }
 
 interface PropsCampo extends InputHTMLAttributes<HTMLInputElement> {
@@ -24,10 +34,29 @@ export function Campo({ etiqueta, variante = 'bloque', className = '', id, ...re
   const idCampo = id ?? resto.name
   return (
     <label htmlFor={idCampo} className="block">
-      <span className="mb-1 block text-sm font-medium text-white">{etiqueta}</span>
+      <span className={`mb-1 block text-sm font-medium ${ESTILO_ETIQUETA[variante]}`}>{etiqueta}</span>
       <input
         id={idCampo}
         className={`w-full rounded-lg border px-3 py-2.5 outline-none focus:ring-4 ${ESTILO_CAMPO[variante]} ${className}`}
+        {...resto}
+      />
+    </label>
+  )
+}
+
+interface PropsAreaTexto extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  etiqueta: string
+}
+
+/** Área de texto sobre una tarjeta o modal. */
+export function AreaTexto({ etiqueta, className = '', id, ...resto }: PropsAreaTexto) {
+  const idCampo = id ?? resto.name
+  return (
+    <label htmlFor={idCampo} className="block">
+      <span className="mb-1 block text-sm font-medium text-texto">{etiqueta}</span>
+      <textarea
+        id={idCampo}
+        className={`w-full resize-y rounded-lg border px-3 py-2.5 outline-none focus:ring-4 ${ESTILO_CAMPO.superficie} ${className}`}
         {...resto}
       />
     </label>

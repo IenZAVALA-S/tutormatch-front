@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { useRamoElegido } from '../../hooks/useRamoElegido'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { mensajeError } from '../../apollo/errores'
 import { useSesion } from '../../auth/useSesion'
@@ -12,13 +13,14 @@ import {
   fechaChile,
   formatoChile,
   inicioDiaUTC,
+  LETRAS_BLOQUE,
   semanaChile,
   sumarDias,
   type FechaChile,
 } from '../../utils/bloques'
 import { GrillaSemana, Leyenda } from './calendario/GrillaSemana'
 import { Notificaciones } from './calendario/Notificaciones'
-import { indexar, nombreAlumno, type EstadoCasilla } from './calendario/estados'
+import { estadoCasilla, indexar, nombreAlumno, type EstadoCasilla } from './calendario/estados'
 import {
   CANCELAR_SESION,
   CONFIRMAR_SESION,
@@ -39,8 +41,8 @@ export function CalendarioTutor() {
   const tutorId = useSesion()!.usuario.id
   const { toasts, mostrar, cerrar } = useToasts()
 
-  // ---- Asignatura elegida (en la URL: ?ramo=MAT1610) ----
-  const [parametros, setParametros] = useSearchParams()
+  // ---- Asignatura elegida (URL ?ramo=MAT1610, o la última elegida) ----
+  const [pedido, elegirRamo] = useRamoElegido('tutor')
   const { data: datosRamos, loading: cargandoRamos, error: errorRamos } = useQuery(MIS_RAMOS)
   const activos = useMemo(
     () => (datosRamos?.yo.ramos ?? []).filter((r) => r.activo).map((r) => r.ramo),
@@ -51,14 +53,13 @@ export function CalendarioTutor() {
     [datosRamos],
   )
   const nombreRamo = useCallback((codigo: string) => nombres.get(codigo) ?? codigo, [nombres])
-  const pedido = parametros.get('ramo')
   const ramo = activos.find((r) => r.codigo === pedido)?.codigo ?? activos[0]?.codigo ?? null
 
   const [cambiando, setCambiando] = useState(false)
   const tCambio = useRef<ReturnType<typeof setTimeout>>(undefined)
   function cambiarRamo(codigo: string) {
     setCambiando(true)
-    setParametros({ ramo: codigo }, { replace: true })
+    elegirRamo(codigo)
     clearTimeout(tCambio.current)
     tCambio.current = setTimeout(() => setCambiando(false), CARGA_CAMBIO_MS)
   }
@@ -85,6 +86,24 @@ export function CalendarioTutor() {
   const casillas = useMemo(() => indexar(semanaVisible?.disponibilidad ?? []), [semanaVisible])
   const sesiones = useMemo(() => indexar(semanaVisible?.sesiones ?? []), [semanaVisible])
 
+  /** Estados de los bloques A–F de un día, para la asignatura elegida. */
+  const estadosDia = useCallback(
+    (dia: FechaChile) =>
+      ramo ? LETRAS_BLOQUE.map((letra) => estadoCasilla(dia, letra, ramo, casillas, sesiones, ahora)) : [],
+    [ramo, casillas, sesiones, ahora],
+  )
+
+  // Resumen de la semana en la asignatura elegida.
+  const resumen = useMemo(() => {
+    const cuenta = { disponibles: 0, pendientes: 0, confirmadas: 0 }
+    for (const e of semana.dias.flatMap(estadosDia)) {
+      if (e.tipo === 'disponible') cuenta.disponibles++
+      else if (e.tipo === 'pendiente') cuenta.pendientes++
+      else if (e.tipo === 'confirmada') cuenta.confirmadas++
+    }
+    return cuenta
+  }, [semana, estadosDia])
+
   // ---- Pendientes, con sondeo y toast de reserva nueva ----
   const { data: datosPendientes, loading: cargandoPendientes } = useQuery(PENDIENTES, {
     variables: { tutorId },
@@ -110,7 +129,8 @@ export function CalendarioTutor() {
   const [desmarcar] = useMutation(DESMARCAR_CASILLA, RECARGAR)
   const [confirmar] = useMutation(CONFIRMAR_SESION, RECARGAR)
   const [cancelar] = useMutation(CANCELAR_SESION, RECARGAR)
-  const [enCurso, setEnCurso] = useState<number | null>(null)
+  /** Inicios (ms) de las casillas con una acción en curso. */
+  const [enCurso, setEnCurso] = useState<Set<number>>(() => new Set())
   const [sesionEnCurso, setSesionEnCurso] = useState<string | null>(null)
   const [elegida, setElegida] = useState<EstadoCasilla | null>(null)
 
@@ -127,13 +147,56 @@ export function CalendarioTutor() {
     if (!ramo) return
     if (estado.tipo === 'pendiente' || estado.tipo === 'confirmada') return setElegida(estado)
     if (estado.tipo !== 'libre' && estado.tipo !== 'disponible') return
-    setEnCurso(estado.inicio.getTime())
+    setEnCurso(new Set([estado.inicio.getTime()]))
     await ejecutar(() =>
       estado.tipo === 'libre'
         ? marcar({ variables: { ramoCodigo: ramo, inicio: estado.inicio.toISOString() } })
         : desmarcar({ variables: { id: estado.casilla.id } }),
     )
-    setEnCurso(null)
+    setEnCurso(new Set())
+  }
+
+  /**
+   * Marca todos los bloques libres de un día; si no queda ninguno libre,
+   * desmarca los disponibles (los reservados no se tocan). El BFF no tiene
+   * una operación por día, así que se hace casilla por casilla y se recarga
+   * la semana una sola vez al final.
+   */
+  async function accionDia(dia: FechaChile) {
+    if (!ramo) return
+    const estados = estadosDia(dia)
+    const libres = estados.filter((e) => e.tipo === 'libre')
+    const disponibles = estados.flatMap((e) => (e.tipo === 'disponible' ? [e] : []))
+    const marcando = libres.length > 0
+    const objetivo = marcando ? libres : disponibles
+    if (objetivo.length === 0) return
+
+    setEnCurso(new Set(objetivo.map((e) => e.inicio.getTime())))
+    let fallas = 0
+    let ultimoError: unknown = null
+    for (const e of objetivo) {
+      try {
+        if (marcando) {
+          await marcar({ variables: { ramoCodigo: ramo, inicio: e.inicio.toISOString() }, refetchQueries: [] })
+        } else if (e.tipo === 'disponible') {
+          await desmarcar({ variables: { id: e.casilla.id }, refetchQueries: [] })
+        }
+      } catch (error) {
+        fallas++
+        ultimoError = error
+      }
+    }
+    await recargarSemana()
+    setEnCurso(new Set())
+
+    const nombreDia = formatoChile(inicioDiaUTC(dia), "EEEE d 'de' MMMM")
+    const hechas = objetivo.length - fallas
+    if (hechas > 0) {
+      mostrar(
+        `${marcando ? 'Marcaste' : 'Desmarcaste'} ${hechas} ${hechas === 1 ? 'horario' : 'horarios'} del ${nombreDia}.`,
+      )
+    }
+    if (fallas > 0) mostrar(`${fallas} no se pudieron cambiar: ${mensajeError(ultimoError)}`, 'error')
   }
 
   async function accionSesion(id: string, tipo: 'confirmar' | 'cancelar', exito: string) {
@@ -155,13 +218,25 @@ export function CalendarioTutor() {
       <h1 className="text-3xl font-bold tracking-tight">Calendario</h1>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-2xl border border-borde bg-superficie/90 p-4 shadow-sm backdrop-blur">
+        <section className="flex flex-col gap-4 rounded-2xl border border-borde bg-superficie/90 p-5 shadow-sm backdrop-blur md:h-56">
+          <h2 className="font-semibold">Asignatura</h2>
           {activos.length > 0 ? (
             <>
-              <SelectorAsignatura opciones={activos} valor={ramo} alCambiar={cambiarRamo} />
-              <p className="mt-3 text-sm text-texto-suave">
-                Marca las casillas en que puedes hacer tutorías de esta asignatura. Una casilla marcada aquí deja de
-                estar disponible para tus otros ramos.
+              <SelectorAsignatura opciones={activos} valor={ramo} alCambiar={cambiarRamo} sinEtiqueta />
+              <ul aria-label="Esta semana" className="flex flex-wrap gap-2 text-xs font-semibold">
+                <Pastilla className="bg-marca-100 text-marca-800 dark:bg-marca-900/50 dark:text-marca-200">
+                  {resumen.disponibles} {resumen.disponibles === 1 ? 'disponible' : 'disponibles'}
+                </Pastilla>
+                <Pastilla className="bg-sol-100 text-sol-800 dark:bg-sol-800/30 dark:text-sol-200">
+                  {resumen.pendientes} {resumen.pendientes === 1 ? 'pendiente' : 'pendientes'}
+                </Pastilla>
+                <Pastilla className="bg-acento-100 text-acento-700 dark:bg-acento-900/50 dark:text-acento-200">
+                  {resumen.confirmadas} {resumen.confirmadas === 1 ? 'confirmada' : 'confirmadas'}
+                </Pastilla>
+                <li className="self-center font-normal text-texto-suave">esta semana</li>
+              </ul>
+              <p className="mt-auto text-sm leading-relaxed text-texto-suave">
+                Una casilla marcada aquí deja de estar disponible para tus otros ramos.
               </p>
             </>
           ) : (
@@ -185,10 +260,10 @@ export function CalendarioTutor() {
       </div>
 
       {ramo && (
-        <section className="bloque-marca space-y-4 rounded-2xl p-4 text-white sm:p-6">
+        <section className="space-y-4 tarjeta-marca p-4 sm:p-6">
           <header className="flex flex-wrap items-center gap-3">
             <div className="mr-auto">
-              <p className="text-sm font-medium text-white/80">{nombreRamo(ramo)}</p>
+              <p className="text-sm font-semibold text-marca-600 dark:text-marca-300">{nombreRamo(ramo)}</p>
               <h2 className="text-xl font-bold">{tituloSemana(semana.dias[0], viernes)}</h2>
             </div>
             <nav className="flex items-center gap-2">
@@ -205,15 +280,16 @@ export function CalendarioTutor() {
           </header>
 
           {errorSemana && !semanaVisible ? (
-            <p className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-marca-800">{mensajeError(errorSemana)}</p>
+            <p className="rounded-lg bg-marca-50 px-3 py-2 text-sm font-medium text-marca-800 dark:bg-marca-900/40 dark:text-marca-100">
+              {mensajeError(errorSemana)}
+            </p>
           ) : (
             <GrillaSemana
               dias={semana.dias}
-              ramo={ramo}
-              casillas={casillas}
-              sesiones={sesiones}
               ahora={ahora}
               enCurso={enCurso}
+              estadosDia={estadosDia}
+              alAccionDia={accionDia}
               cargando={cambiando || (cargandoSemana && !datosSemana)}
               alElegir={alElegir}
             />
@@ -279,6 +355,10 @@ export function CalendarioTutor() {
   )
 }
 
+function Pastilla({ className, children }: { className: string; children: React.ReactNode }) {
+  return <li className={`rounded-full px-2.5 py-1 ${className}`}>{children}</li>
+}
+
 /** "Semana del 23 al 27 de noviembre" o "del 29 de diciembre al 2 de enero". */
 function tituloSemana(lunes: FechaChile, viernes: FechaChile) {
   const dia = (f: FechaChile, patron: string) => formatoChile(inicioDiaUTC(f), patron)
@@ -290,7 +370,7 @@ function BotonSemana({ className = '', ...resto }: React.ButtonHTMLAttributes<HT
   return (
     <button
       type="button"
-      className={`grid h-10 min-w-10 place-items-center rounded-xl bg-white/15 text-lg font-bold text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25)] transition hover:-translate-y-0.5 hover:bg-white/30 active:translate-y-0 ${className}`}
+      className={`grid h-10 min-w-10 place-items-center rounded-xl border border-borde bg-marca-50 text-lg font-bold text-marca-700 transition hover:-translate-y-0.5 hover:bg-marca-100 active:translate-y-0 dark:bg-tinta-700 dark:text-marca-200 dark:hover:bg-tinta-600 ${className}`}
       {...resto}
     />
   )

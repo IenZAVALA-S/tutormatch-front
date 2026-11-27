@@ -12,9 +12,15 @@ export function RutaProtegida() {
   return <Outlet />
 }
 
-/** Portal del tutor: si todavía no es tutor, va al formulario de ramos. */
+/**
+ * Portal del tutor: si todavía no es tutor, va al formulario de ramos.
+ * Si ya eligió el portal de alumno (por ejemplo, al quitar su último ramo),
+ * va directo ahí.
+ */
 export function RutaTutor() {
   const sesion = useSesion()
-  if (sesion && !sesion.usuario.esTutor) return <Navigate to="/inscripcion-tutor" replace />
+  if (sesion && !sesion.usuario.esTutor) {
+    return <Navigate to={sesion.portal === 'alumno' ? '/alumno' : '/inscripcion-tutor'} replace />
+  }
   return <Outlet />
 }

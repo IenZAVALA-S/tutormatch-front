@@ -69,7 +69,7 @@ Topbar: Reservas, Mis tutorías, Archivos, Avisos, Reseñas, Agente, Perfil.
 - **Primero se elige la asignatura** con el selector. Sin asignatura elegida no se muestra el calendario (`buscarDisponibilidad` exige `ramoCodigo`).
 - **Vista del mes completo:** cada día es una casilla con la cantidad de horarios disponibles (`buscarDisponibilidad(ramoCodigo, desde, hasta)`). Navegación sencilla entre meses o rangos.
 - Al hacer clic en un día con horarios, **popup** con una tarjeta por horario: tutor, horario y asignatura.
-  - Mientras el back no agregue el nombre, la tarjeta muestra el **id del tutor**.
+  - La casilla trae el tutor (`tutor { nombre promedioEvaluaciones cantidadEvaluaciones }`): la tarjeta muestra su nombre y su promedio.
   - **Inscribirme** (`crearSesion`). La reserva queda pendiente hasta que el tutor la acepte.
   - **Cancelar**, si ya está inscrito (`cancelarSesion`). `buscarDisponibilidad` solo trae casillas libres, así que las reservas propias salen de `sesiones(estudianteId)` y se cruzan con el calendario.
   - **Sobre el tutor:** sus reseñas (`evaluacionesTutor`).
@@ -96,7 +96,7 @@ Topbar: Reservas, Mis tutorías, Archivos, Avisos, Reseñas, Agente, Perfil.
 
 ### Agente
 
-- Pantalla de "próximamente". Más adelante: chat con un agente de IA que busca tutorías y reserva por el alumno.
+- Pantalla de "próximamente" (decidido el 27-11-2026, aunque el BFF ya tiene `chatAgente` funcionando; ver `CLAUDE.md`). Más adelante: chat con un agente de IA que busca tutorías y reserva por el alumno.
 
 ### Perfil
 
@@ -104,6 +104,5 @@ Topbar: Reservas, Mis tutorías, Archivos, Avisos, Reseñas, Agente, Perfil.
 
 ## Pendiente en el back
 
-- `tutor: Usuario` en `BloqueDisponibilidad` y en `Material` (lo pide Ien). Al estar, reemplazar los ids de tutor por el nombre.
+- `tutor: Usuario` en `Material` (lo pide Ien). Al estar, reemplazar los ids de tutor por el nombre. (En `BloqueDisponibilidad` ya está.)
 - Más datos personales en el registro, si se piden: Usuarios (Pablo) y BFF.
-- Contrato y módulo del agente.

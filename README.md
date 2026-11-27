@@ -42,7 +42,7 @@ npm run codegen    # con el BFF corriendo en localhost:3000
 También se puede generar desde el `schema.gql` del BFF sin levantarlo:
 
 ```bash
-CODEGEN_SCHEMA=../BFF-TutorMatch/src/schema.gql npm run codegen
+CODEGEN_SCHEMA=../BFF-TutorMatch/schema.gql npm run codegen
 ```
 
 Las operaciones se escriben con `graphql()` de `src/gql` (preset `client`), y codegen genera sus tipos.

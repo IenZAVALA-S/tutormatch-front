@@ -7,10 +7,14 @@ interface Props {
   children: ReactNode
   /** Botones del pie, alineados a la derecha. */
   acciones?: ReactNode
+  /** `sm` para confirmaciones; `lg` para listas (con scroll si no cabe). */
+  ancho?: 'sm' | 'lg'
+  /** Texto bajo el título. */
+  subtitulo?: ReactNode
 }
 
 /** Modal reutilizable. Se cierra con Escape o haciendo clic fuera. */
-export function Modal({ abierto, titulo, alCerrar, children, acciones }: Props) {
+export function Modal({ abierto, titulo, alCerrar, children, acciones, ancho = 'sm', subtitulo }: Props) {
   useEffect(() => {
     if (!abierto) return
     const alTeclear = (e: KeyboardEvent) => e.key === 'Escape' && alCerrar()
@@ -29,10 +33,27 @@ export function Modal({ abierto, titulo, alCerrar, children, acciones }: Props) 
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        className="w-full max-w-sm animate-entrar rounded-2xl border border-borde bg-superficie p-6 text-texto shadow-2xl"
+        className={`flex max-h-[88vh] w-full animate-entrar flex-col rounded-2xl border border-borde bg-superficie p-6 text-texto shadow-2xl ${
+          ancho === 'lg' ? 'max-w-xl' : 'max-w-sm'
+        }`}
       >
-        <h2 className="text-lg font-bold">{titulo}</h2>
-        <div className="mt-3 text-sm text-texto-suave">{children}</div>
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold">{titulo}</h2>
+            {subtitulo && <p className="mt-0.5 text-sm text-texto-suave">{subtitulo}</p>}
+          </div>
+          {ancho === 'lg' && (
+            <button
+              type="button"
+              onClick={alCerrar}
+              aria-label="Cerrar"
+              className="-m-1 rounded-lg p-1.5 text-texto-suave transition hover:bg-marca-50 hover:text-texto dark:hover:bg-tinta-700"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        <div className="-mx-1 mt-3 overflow-y-auto px-1 text-sm text-texto-suave">{children}</div>
         {acciones && <div className="mt-6 flex flex-wrap justify-end gap-2">{acciones}</div>}
       </div>
     </div>

@@ -10,6 +10,8 @@ interface Props {
   etiqueta?: string
   /** Texto de la opción vacía; si no se da, no hay opción vacía. */
   vacio?: string
+  /** Oculta la etiqueta a la vista (sigue para lectores de pantalla). */
+  sinEtiqueta?: boolean
   className?: string
 }
 
@@ -23,11 +25,12 @@ export function SelectorAsignatura({
   alCambiar,
   etiqueta = 'Asignatura',
   vacio,
+  sinEtiqueta = false,
   className = '',
 }: Props) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1.5 block text-sm font-medium text-texto-suave">{etiqueta}</span>
+      <span className={sinEtiqueta ? 'sr-only' : 'mb-1.5 block text-sm font-medium text-texto-suave'}>{etiqueta}</span>
       <span className="relative block">
         <select
           value={valor ?? ''}

@@ -8,6 +8,10 @@ export type CodigoError =
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'SERVICE_UNAVAILABLE'
+  /** Agente: demasiados mensajes seguidos. */
+  | 'TOO_MANY_REQUESTS'
+  /** Agente: no terminó a tiempo. */
+  | 'GATEWAY_TIMEOUT'
 
 /** Código del primer error GraphQL, o null si fue un error de red u otro. */
 export function codigoError(error: unknown): CodigoError | null {
@@ -21,6 +25,8 @@ const POR_DEFECTO: Partial<Record<CodigoError, string>> = {
   FORBIDDEN: 'No tienes permiso para hacer esto.',
   NOT_FOUND: 'No se encontró lo que buscabas.',
   SERVICE_UNAVAILABLE: 'El servicio no responde. Intenta de nuevo en un rato.',
+  TOO_MANY_REQUESTS: 'Estás enviando mensajes muy seguido. Espera un momento y vuelve a intentarlo.',
+  GATEWAY_TIMEOUT: 'El agente se demoró demasiado y no alcanzó a terminar. Intenta de nuevo.',
 }
 
 /**
