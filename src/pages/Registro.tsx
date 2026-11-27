@@ -1,20 +1,20 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useMutation } from '@apollo/client/react'
 import { mensajeError } from '../apollo/errores'
 import { REGISTRO } from '../auth/operaciones'
-import { guardarSesion, type Portal } from '../auth/sesion'
+import { destinoInicial, guardarSesion, type Portal } from '../auth/sesion'
 import { useSesion } from '../auth/useSesion'
 import { AvisoError, BotonNegro, Campo } from '../components/formulario'
 import { LayoutPublico } from '../layout/LayoutPublico'
 
 export function Registro() {
   const sesion = useSesion()
-  const navegar = useNavigate()
   const [registro, { loading }] = useMutation(REGISTRO)
   const [error, setError] = useState<string | null>(null)
 
-  if (sesion) return <Navigate to="/" replace />
+  // Con sesión (también justo después de entrar): directo a su portal.
+  if (sesion) return <Navigate to={destinoInicial(sesion)} replace />
 
   async function registrarse(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -34,8 +34,6 @@ export function Registro() {
       })
       if (!data) return
       guardarSesion({ token: data.registro.token, usuario: data.registro.usuario, portal })
-      // El registro de tutor sigue con el formulario de ramos.
-      navegar(portal === 'tutor' ? '/inscripcion-tutor' : '/alumno', { replace: true })
     } catch (e) {
       setError(mensajeError(e, { CONFLICT: 'Ya existe una cuenta con ese email.' }))
     }

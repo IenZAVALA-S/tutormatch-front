@@ -71,6 +71,15 @@ export function obtenerSesion(): Sesion | null {
   return cache
 }
 
+/**
+ * A dónde ir con una sesión: el portal elegido, salvo que eligió tutor sin
+ * serlo todavía, que va al formulario de ramos.
+ */
+export function destinoInicial(sesion: Sesion): string {
+  if (sesion.portal === 'tutor' && !sesion.usuario.esTutor) return '/inscripcion-tutor'
+  return `/${sesion.portal}`
+}
+
 export function obtenerToken(): string | null {
   return obtenerSesion()?.token ?? null
 }

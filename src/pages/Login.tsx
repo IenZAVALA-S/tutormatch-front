@@ -1,21 +1,20 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useMutation } from '@apollo/client/react'
 import { mensajeError } from '../apollo/errores'
 import { LOGIN } from '../auth/operaciones'
-import { guardarSesion, type Portal } from '../auth/sesion'
+import { destinoInicial, guardarSesion, type Portal } from '../auth/sesion'
 import { useSesion } from '../auth/useSesion'
 import { AvisoError, BotonNegro, Campo } from '../components/formulario'
 import { LayoutPublico } from '../layout/LayoutPublico'
 
 export function Login() {
   const sesion = useSesion()
-  const navegar = useNavigate()
   const [login, { loading }] = useMutation(LOGIN)
   const [error, setError] = useState<string | null>(null)
 
-  // Ya tiene sesión: directo a su portal.
-  if (sesion) return <Navigate to="/" replace />
+  // Con sesión (también justo después de entrar): directo a su portal.
+  if (sesion) return <Navigate to={destinoInicial(sesion)} replace />
 
   async function ingresar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault()
@@ -35,8 +34,6 @@ export function Login() {
       })
       if (!data) return
       guardarSesion({ token: data.login.token, usuario: data.login.usuario, portal })
-      // Si entra como tutor sin serlo, RutaTutor lo manda al formulario de ramos.
-      navegar(`/${portal}`, { replace: true })
     } catch (e) {
       setError(mensajeError(e, { UNAUTHENTICATED: 'El email o la contraseña no son correctos.' }))
     }

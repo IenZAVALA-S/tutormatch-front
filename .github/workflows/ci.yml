@@ -1,0 +1,61 @@
+# CI del front: tipos y build, tests con cobertura (mínimo 60 %) y la
+# imagen Docker. Corre en cada push a main y en cada pull request.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-y-tests:
+    name: Build y tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Revisar tipos y compilar
+        run: npm run build
+
+      - name: Tests con cobertura
+        # Falla si la cobertura baja del 60 % (umbral en vite.config.ts).
+        run: npm run test:cobertura
+
+      - name: Guardar el reporte de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: coverage/
+          retention-days: 14
+
+  docker:
+    name: Imagen Docker
+    runs-on: ubuntu-latest
+    needs: build-y-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Construir la imagen
+        run: docker build -t tutormatch-front:ci .
+
+      - name: Probar que sirve la app y las rutas del router
+        run: |
+          docker run -d --name front -p 8080:8080 tutormatch-front:ci
+          for i in $(seq 1 20); do curl -fs http://localhost:8080/salud && break; sleep 1; done
+          # Recargar una ruta del front debe devolver index.html, no 404.
+          curl -fs http://localhost:8080/alumno/tutorias | grep -q '<div id="root">'
+          # /graphql no lo sirve nginx (lo manda el ingress al BFF).
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/graphql)" = "404"
+          docker rm -f front

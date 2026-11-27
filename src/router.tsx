@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom'
 import { RutaProtegida, RutaTutor } from './auth/RutaProtegida'
+import { destinoInicial } from './auth/sesion'
 import { useSesion } from './auth/useSesion'
 import { BarraCarga, CargaInicial } from './components/Carga'
 import { PortalLayout } from './layout/PortalLayout'
@@ -9,8 +10,8 @@ import { PortalLayout } from './layout/PortalLayout'
 function Inicio() {
   const sesion = useSesion()
   if (!sesion) return <Navigate to="/login" replace />
-  // RutaTutor manda al formulario de ramos si eligió tutor sin serlo.
-  return <Navigate to={`/${sesion.portal}`} replace />
+  // Al portal elegido (o al formulario de ramos si eligió tutor sin serlo).
+  return <Navigate to={destinoInicial(sesion)} replace />
 }
 
 /** Raíz: la barra de carga entre páginas y la página actual. */
