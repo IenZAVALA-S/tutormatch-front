@@ -14,6 +14,7 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
+    "\n  query Prueba {\n    ramos {\n      codigo\n    }\n  }\n": typeof types.PruebaDocument,
     "\n  fragment UsuarioSesion on Usuario {\n    id\n    nombre\n    email\n    esTutor\n  }\n": typeof types.UsuarioSesionFragmentDoc,
     "\n  mutation Login($input: LoginInput!) {\n    login(input: $input) {\n      token\n      usuario {\n        ...UsuarioSesion\n      }\n    }\n  }\n": typeof types.LoginDocument,
     "\n  mutation Registro($input: RegistroInput!) {\n    registro(input: $input) {\n      token\n      usuario {\n        ...UsuarioSesion\n      }\n    }\n  }\n": typeof types.RegistroDocument,
@@ -27,6 +28,7 @@ type Documents = {
     "\n  query ResenasAlumno($estudianteId: ID!) {\n    sesiones(estudianteId: $estudianteId, estado: FINALIZADA) {\n      id\n      inicio\n      ramoCodigo\n      tutorId\n      tutor {\n        ...TutorTarjeta\n      }\n    }\n    misEvaluaciones {\n      sesionId\n      nota\n      comentario\n      creadaEn\n    }\n  }\n": typeof types.ResenasAlumnoDocument,
     "\n  mutation Evaluar($sesionId: ID!, $nota: Int!, $comentario: String) {\n    evaluar(sesionId: $sesionId, nota: $nota, comentario: $comentario) {\n      sesionId\n      nota\n      comentario\n      creadaEn\n    }\n  }\n": typeof types.EvaluarDocument,
     "\n  query PerfilAlumno {\n    yo {\n      ...UsuarioSesion\n    }\n  }\n": typeof types.PerfilAlumnoDocument,
+    "\n  mutation ChatAgente($mensaje: String!, $conversacionId: String) {\n    chatAgente(mensaje: $mensaje, conversacionId: $conversacionId) {\n      respuesta\n      conversacionId\n      acciones {\n        id\n        tipo\n      }\n    }\n  }\n": typeof types.ChatAgenteDocument,
     "\n  mutation CrearSesion($input: CrearSesionInput!) {\n    crearSesion(input: $input) {\n      id\n      estado\n    }\n  }\n": typeof types.CrearSesionDocument,
     "\n  query MisRamos {\n    yo {\n      id\n      ramos {\n        activo\n        ramo {\n          codigo\n          nombre\n        }\n      }\n    }\n  }\n": typeof types.MisRamosDocument,
     "\n  query SemanaTutor($tutorId: ID!, $desde: DateTime!, $hasta: DateTime!) {\n    disponibilidad(tutorId: $tutorId, desde: $desde, hasta: $hasta) {\n      id\n      inicio\n      ramoCodigo\n      libre\n    }\n    sesiones(tutorId: $tutorId, desde: $desde, hasta: $hasta) {\n      id\n      inicio\n      estado\n      ramoCodigo\n      estudianteId\n      estudiante {\n        id\n        nombre\n      }\n    }\n  }\n": typeof types.SemanaTutorDocument,
@@ -43,9 +45,11 @@ type Documents = {
     "\n  query MaterialTutor($tutorId: ID!, $ramoCodigo: String!) {\n    material(tutorId: $tutorId, ramoCodigo: $ramoCodigo) {\n      ...MaterialLista\n    }\n  }\n": typeof types.MaterialTutorDocument,
     "\n  mutation PublicarAviso($ramoCodigo: String!, $titulo: String!, $texto: String!) {\n    publicarAviso(ramoCodigo: $ramoCodigo, titulo: $titulo, texto: $texto) {\n      id\n    }\n  }\n": typeof types.PublicarAvisoDocument,
     "\n  mutation EliminarMaterial($id: ID!) {\n    eliminarMaterial(id: $id)\n  }\n": typeof types.EliminarMaterialDocument,
+    "\n  mutation FinalizarSesion($id: ID!) {\n    finalizarSesion(id: $id) {\n      id\n      estado\n    }\n  }\n": typeof types.FinalizarSesionDocument,
     "\n  mutation CancelarSesion($id: ID!) {\n    cancelarSesion(id: $id) {\n      id\n      estado\n    }\n  }\n": typeof types.CancelarSesionDocument,
 };
 const documents: Documents = {
+    "\n  query Prueba {\n    ramos {\n      codigo\n    }\n  }\n": types.PruebaDocument,
     "\n  fragment UsuarioSesion on Usuario {\n    id\n    nombre\n    email\n    esTutor\n  }\n": types.UsuarioSesionFragmentDoc,
     "\n  mutation Login($input: LoginInput!) {\n    login(input: $input) {\n      token\n      usuario {\n        ...UsuarioSesion\n      }\n    }\n  }\n": types.LoginDocument,
     "\n  mutation Registro($input: RegistroInput!) {\n    registro(input: $input) {\n      token\n      usuario {\n        ...UsuarioSesion\n      }\n    }\n  }\n": types.RegistroDocument,
@@ -59,6 +63,7 @@ const documents: Documents = {
     "\n  query ResenasAlumno($estudianteId: ID!) {\n    sesiones(estudianteId: $estudianteId, estado: FINALIZADA) {\n      id\n      inicio\n      ramoCodigo\n      tutorId\n      tutor {\n        ...TutorTarjeta\n      }\n    }\n    misEvaluaciones {\n      sesionId\n      nota\n      comentario\n      creadaEn\n    }\n  }\n": types.ResenasAlumnoDocument,
     "\n  mutation Evaluar($sesionId: ID!, $nota: Int!, $comentario: String) {\n    evaluar(sesionId: $sesionId, nota: $nota, comentario: $comentario) {\n      sesionId\n      nota\n      comentario\n      creadaEn\n    }\n  }\n": types.EvaluarDocument,
     "\n  query PerfilAlumno {\n    yo {\n      ...UsuarioSesion\n    }\n  }\n": types.PerfilAlumnoDocument,
+    "\n  mutation ChatAgente($mensaje: String!, $conversacionId: String) {\n    chatAgente(mensaje: $mensaje, conversacionId: $conversacionId) {\n      respuesta\n      conversacionId\n      acciones {\n        id\n        tipo\n      }\n    }\n  }\n": types.ChatAgenteDocument,
     "\n  mutation CrearSesion($input: CrearSesionInput!) {\n    crearSesion(input: $input) {\n      id\n      estado\n    }\n  }\n": types.CrearSesionDocument,
     "\n  query MisRamos {\n    yo {\n      id\n      ramos {\n        activo\n        ramo {\n          codigo\n          nombre\n        }\n      }\n    }\n  }\n": types.MisRamosDocument,
     "\n  query SemanaTutor($tutorId: ID!, $desde: DateTime!, $hasta: DateTime!) {\n    disponibilidad(tutorId: $tutorId, desde: $desde, hasta: $hasta) {\n      id\n      inicio\n      ramoCodigo\n      libre\n    }\n    sesiones(tutorId: $tutorId, desde: $desde, hasta: $hasta) {\n      id\n      inicio\n      estado\n      ramoCodigo\n      estudianteId\n      estudiante {\n        id\n        nombre\n      }\n    }\n  }\n": types.SemanaTutorDocument,
@@ -75,6 +80,7 @@ const documents: Documents = {
     "\n  query MaterialTutor($tutorId: ID!, $ramoCodigo: String!) {\n    material(tutorId: $tutorId, ramoCodigo: $ramoCodigo) {\n      ...MaterialLista\n    }\n  }\n": types.MaterialTutorDocument,
     "\n  mutation PublicarAviso($ramoCodigo: String!, $titulo: String!, $texto: String!) {\n    publicarAviso(ramoCodigo: $ramoCodigo, titulo: $titulo, texto: $texto) {\n      id\n    }\n  }\n": types.PublicarAvisoDocument,
     "\n  mutation EliminarMaterial($id: ID!) {\n    eliminarMaterial(id: $id)\n  }\n": types.EliminarMaterialDocument,
+    "\n  mutation FinalizarSesion($id: ID!) {\n    finalizarSesion(id: $id) {\n      id\n      estado\n    }\n  }\n": types.FinalizarSesionDocument,
     "\n  mutation CancelarSesion($id: ID!) {\n    cancelarSesion(id: $id) {\n      id\n      estado\n    }\n  }\n": types.CancelarSesionDocument,
 };
 
@@ -92,6 +98,10 @@ const documents: Documents = {
  */
 export function graphql(source: string): unknown;
 
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  query Prueba {\n    ramos {\n      codigo\n    }\n  }\n"): (typeof documents)["\n  query Prueba {\n    ramos {\n      codigo\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
@@ -144,6 +154,10 @@ export function graphql(source: "\n  mutation Evaluar($sesionId: ID!, $nota: Int
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  query PerfilAlumno {\n    yo {\n      ...UsuarioSesion\n    }\n  }\n"): (typeof documents)["\n  query PerfilAlumno {\n    yo {\n      ...UsuarioSesion\n    }\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation ChatAgente($mensaje: String!, $conversacionId: String) {\n    chatAgente(mensaje: $mensaje, conversacionId: $conversacionId) {\n      respuesta\n      conversacionId\n      acciones {\n        id\n        tipo\n      }\n    }\n  }\n"): (typeof documents)["\n  mutation ChatAgente($mensaje: String!, $conversacionId: String) {\n    chatAgente(mensaje: $mensaje, conversacionId: $conversacionId) {\n      respuesta\n      conversacionId\n      acciones {\n        id\n        tipo\n      }\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
@@ -208,6 +222,10 @@ export function graphql(source: "\n  mutation PublicarAviso($ramoCodigo: String!
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation EliminarMaterial($id: ID!) {\n    eliminarMaterial(id: $id)\n  }\n"): (typeof documents)["\n  mutation EliminarMaterial($id: ID!) {\n    eliminarMaterial(id: $id)\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation FinalizarSesion($id: ID!) {\n    finalizarSesion(id: $id) {\n      id\n      estado\n    }\n  }\n"): (typeof documents)["\n  mutation FinalizarSesion($id: ID!) {\n    finalizarSesion(id: $id) {\n      id\n      estado\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

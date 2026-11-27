@@ -50,12 +50,16 @@ jobs:
       - name: Construir la imagen
         run: docker build -t tutormatch-front:ci .
 
-      - name: Probar que sirve la app y las rutas del router
+      - name: Probar la app, las rutas del router y el reenvío al BFF
         run: |
-          docker run -d --name front -p 8080:8080 tutormatch-front:ci
+          # Un "BFF" de prueba llamado bff en el puerto 3000, en la misma red.
+          docker network create tutormatch
+          docker run -d --network tutormatch --name bff hashicorp/http-echo:1.0 -listen=:3000 -text=bff-ok
+          docker run -d --network tutormatch --name front -p 8080:8080 tutormatch-front:ci
           for i in $(seq 1 20); do curl -fs http://localhost:8080/salud && break; sleep 1; done
           # Recargar una ruta del front debe devolver index.html, no 404.
           curl -fs http://localhost:8080/alumno/tutorias | grep -q '<div id="root">'
-          # /graphql no lo sirve nginx (lo manda el ingress al BFF).
-          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/graphql)" = "404"
-          docker rm -f front
+          # /graphql y /archivos se reenvían al BFF.
+          curl -fs http://localhost:8080/graphql | grep -q bff-ok
+          curl -fs http://localhost:8080/archivos/x | grep -q bff-ok
+          docker rm -f front bff

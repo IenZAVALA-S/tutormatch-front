@@ -186,21 +186,33 @@ function Celda({
           detalle: nombreAlumno(estado.sesion),
           ayuda: 'Ver o cancelar la sesión',
         }
-      case 'pasada':
+      case 'pasada': {
+        // Confirmada que ya empezó: se puede finalizar desde aquí.
+        const enCursoConfirmada = estado.sesion?.estado === 'CONFIRMADA'
         return {
-          clase: `cursor-default ${
-            estado.sesion
-              ? 'bg-acento-50 text-acento-700 dark:bg-acento-900/40 dark:text-acento-200'
-              : 'bg-tinta-50 text-tinta-300 dark:bg-tinta-900/60 dark:text-tinta-500'
-          }`,
+          clase: enCursoConfirmada
+            ? 'bg-acento-100 text-acento-800 ring-2 ring-acento-400 hover:-translate-y-0.5 hover:shadow-md dark:bg-acento-900/60 dark:text-acento-100'
+            : `cursor-default ${
+                estado.sesion
+                  ? 'bg-acento-50 text-acento-700 dark:bg-acento-900/40 dark:text-acento-200'
+                  : 'bg-tinta-50 text-tinta-300 dark:bg-tinta-900/60 dark:text-tinta-500'
+              }`,
           titulo: estado.sesion ? (estado.sesion.estado === 'FINALIZADA' ? 'Finalizada' : 'En curso') : '—',
           detalle: estado.sesion ? nombreAlumno(estado.sesion) : estado.casilla ? 'Sin reservas' : 'Pasada',
-          ayuda: 'Ya empezó',
+          ayuda: enCursoConfirmada
+            ? 'Finalizar la sesión'
+            : estado.sesion?.estado === 'FINALIZADA'
+              ? 'Sesión finalizada'
+              : 'Ya empezó',
         }
+      }
     }
   })()
 
-  const deshabilitada = estado.tipo === 'ocupada' || estado.tipo === 'pasada' || enCurso
+  const deshabilitada =
+    estado.tipo === 'ocupada' ||
+    (estado.tipo === 'pasada' && estado.sesion?.estado !== 'CONFIRMADA') ||
+    enCurso
 
   return (
     <button

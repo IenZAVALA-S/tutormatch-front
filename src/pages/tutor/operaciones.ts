@@ -180,6 +180,16 @@ export const ELIMINAR_MATERIAL = graphql(`
   }
 `)
 
+/** Solo el tutor; pasa una sesión CONFIRMADA a FINALIZADA (y el alumno puede evaluarla). */
+export const FINALIZAR_SESION = graphql(`
+  mutation FinalizarSesion($id: ID!) {
+    finalizarSesion(id: $id) {
+      id
+      estado
+    }
+  }
+`)
+
 export const CANCELAR_SESION = graphql(`
   mutation CancelarSesion($id: ID!) {
     cancelarSesion(id: $id) {

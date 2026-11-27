@@ -1,4 +1,5 @@
-# Front de TutorMatch: se compila con Node y se sirve con nginx.
+# Front de TutorMatch: se compila con Node y se sirve con nginx, que además
+# reenvía /graphql y /archivos al BFF (bff:3000).
 # Los tipos de GraphQL (src/gql) están en el repo, así que el build no
 # necesita el BFF.
 
@@ -14,6 +15,7 @@ RUN npm run build
 # nginx sin root (escucha en 8080), como se espera en Kubernetes.
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY proxy-bff.inc /etc/nginx/conf.d/proxy-bff.inc
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:8080/salud || exit 1

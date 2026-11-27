@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // El front solo habla con el BFF y siempre con rutas relativas.
 // En desarrollo, el proxy reenvía /graphql y /archivos al BFF local;
-// en Kubernetes lo hace el ingress (mismo dominio, sin CORS).
+// en Docker y Kubernetes lo hace el nginx del front (mismo dominio, sin CORS).
 // Ojo: ninguna ruta del front puede empezar con /graphql ni /archivos.
 const BFF = 'http://localhost:3000'
 

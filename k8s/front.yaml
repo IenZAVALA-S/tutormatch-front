@@ -1,0 +1,78 @@
+# Front de TutorMatch en Kubernetes (probado para Docker Desktop).
+#
+# - nginx sirve el build y reenvía /graphql y /archivos al Service `bff`
+#   (puerto 3000), así que no hace falta ingress.
+# - El Service es LoadBalancer: Docker Desktop lo publica en http://localhost.
+# - nginx resuelve `bff` al arrancar: aplicar el BFF antes que el front. Si se
+#   aplica primero, el pod se reinicia hasta que `bff` exista.
+#
+# Construir la imagen y aplicar:
+#   docker build -t tutormatch-front:latest .
+#   kubectl apply -f k8s/front.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: front
+  labels:
+    app: front
+    app.kubernetes.io/part-of: tutormatch
+spec:
+  # Sin estado: se puede tener más de una réplica.
+  replicas: 2
+  selector:
+    matchLabels:
+      app: front
+  template:
+    metadata:
+      labels:
+        app: front
+        app.kubernetes.io/part-of: tutormatch
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101 # usuario nginx de nginx-unprivileged
+      containers:
+        - name: front
+          image: tutormatch-front:latest
+          # Imagen construida en local (Docker Desktop la comparte con Kubernetes).
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /salud
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /salud
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: front
+  labels:
+    app: front
+    app.kubernetes.io/part-of: tutormatch
+spec:
+  type: LoadBalancer
+  selector:
+    app: front
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

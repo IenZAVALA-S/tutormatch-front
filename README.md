@@ -19,8 +19,7 @@ npm run dev        # http://localhost:5173
 ```
 
 El front solo usa rutas relativas (`/graphql`, `/archivos`). En desarrollo, el proxy de Vite las reenvía a
-`http://localhost:3000` (ver `vite.config.ts`); en Kubernetes, el ingress publica el front y el BFF en el mismo
-dominio. Por eso ninguna ruta del front puede empezar con `/graphql` ni `/archivos`.
+`http://localhost:3000` (ver `vite.config.ts`); en Docker y Kubernetes lo hace el nginx del front hacia `bff:3000`. Por eso ninguna ruta del front puede empezar con `/graphql` ni `/archivos`.
 
 ## Scripts
 
@@ -48,20 +47,35 @@ La cobertura excluye solo lo generado por codegen (`src/gql/`) y `src/main.tsx`.
 
 ## Docker
 
-La imagen compila con Node y sirve `dist/` con nginx sin root, en el puerto **8080**:
+La imagen compila con Node y sirve `dist/` con nginx sin root, en el puerto **8080**. nginx también reenvía
+`/graphql` y `/archivos` al BFF en `bff:3000`, así que no hace falta ingress ni CORS.
 
 ```bash
 docker build -t tutormatch-front .
-docker run --rm -p 8080:8080 tutormatch-front   # http://localhost:8080
+# Con el BFF corriendo en tu máquina (npm run start:dev en su repo):
+docker run --rm -p 8080:8080 --add-host bff:host-gateway tutormatch-front   # http://localhost:8080
 ```
 
-- `nginx.conf` devuelve `index.html` para cualquier ruta que no sea un archivo, así recargar `/alumno/tutorias`
-  no da 404.
-- `/graphql` y `/archivos` **no** los sirve nginx: en Kubernetes el ingress los manda al BFF en el mismo dominio.
-  Si llegan al contenedor, responde 404 (indica que el ingress está mal configurado). Por eso, la imagen sola
-  muestra la app pero no puede iniciar sesión sin el ingress o un proxy delante.
+- nginx resuelve `bff` al arrancar: si ese nombre no existe, no arranca. En local, `--add-host bff:host-gateway`
+  lo apunta al BFF de tu máquina; en Kubernetes es el Service `bff`.
+- Recargar una ruta del front (por ejemplo `/alumno/tutorias`) devuelve `index.html`, no 404.
+- `client_max_body_size 11m` deja pasar archivos de hasta 10 MB (el BFF valida el límite), y
+  `proxy_read_timeout 150s` da tiempo al agente, que puede tardar hasta unos 2 minutos (`proxy-bff.inc`).
 - `GET /salud` responde `ok`, para el healthcheck y las sondas de Kubernetes.
 - Los tipos de `src/gql/` están en el repo, así que el build no necesita el BFF.
+
+## Kubernetes
+
+`k8s/front.yaml` tiene el Deployment (2 réplicas) y un Service `LoadBalancer`, que Docker Desktop publica en
+`http://localhost`:
+
+```bash
+docker build -t tutormatch-front:latest .
+kubectl apply -f k8s/front.yaml   # después de que exista el Service bff
+kubectl get svc front             # EXTERNAL-IP localhost, puerto 80
+```
+
+La imagen se usa en local (`imagePullPolicy: IfNotPresent`): Docker Desktop la comparte con su Kubernetes.
 
 ## CI
 
@@ -69,8 +83,8 @@ docker run --rm -p 8080:8080 tutormatch-front   # http://localhost:8080
 
 1. `npm ci` y `npm run build` (revisa tipos y compila).
 2. `npm run test:cobertura` (mínimo 60 %); el reporte queda como artefacto `cobertura`.
-3. Construye la imagen Docker y comprueba que responde `/salud`, que una ruta del front devuelve `index.html` y
-   que `/graphql` da 404.
+3. Construye la imagen Docker y, con un BFF falso llamado `bff` en la misma red, comprueba `/salud`, que una ruta
+   del front devuelve `index.html` y que `/graphql` y `/archivos` llegan al BFF.
 
 ## Tipos de GraphQL (codegen)
 

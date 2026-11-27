@@ -48,6 +48,9 @@ export function estadoCasilla(
     const sesion = delBloque.find((s) => s.estado !== 'CANCELADA' && s.ramoCodigo === ramo)
     return { tipo: 'pasada', inicio, sesion, casilla: casilla?.ramoCodigo === ramo ? casilla : undefined }
   }
+  // Finalizada antes de su hora (el tutor la cerró): se muestra como terminada.
+  const finalizada = delBloque.find((s) => s.estado === 'FINALIZADA' && s.ramoCodigo === ramo)
+  if (!activa && finalizada) return { tipo: 'pasada', inicio, sesion: finalizada }
   if (activa) {
     if (activa.ramoCodigo !== ramo) return { tipo: 'ocupada', inicio, ramoCodigo: activa.ramoCodigo, reservada: true }
     return activa.estado === 'PENDIENTE'

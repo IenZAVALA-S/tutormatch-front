@@ -36,8 +36,8 @@ Topbar: Calendario, Archivos, Reseñas, Perfil.
 | Disponible | Marcada para esta asignatura | Desmarcar (`desmarcarCasilla`) |
 | Ocupada por otra asignatura | Marcada para otro ramo; no se puede usar aquí | Nada (se cambia desde esa asignatura) |
 | Pendiente | Reservada, esperando confirmación | Aceptar o rechazar |
-| Confirmada | Reservada y confirmada, con el alumno | Cancelar la sesión (`cancelarSesion`) |
-| Pasada | Ya empezó | Nada |
+| Confirmada | Reservada y confirmada, con el alumno | Cancelar la sesión (`cancelarSesion`) o finalizarla (`finalizarSesion`) |
+| Pasada | Ya empezó | Si es una sesión confirmada (en curso): finalizarla. Si no, nada |
 
 - Una casilla reservada no se desmarca: primero se cancela la sesión.
 - **Toast de reserva nueva:** abajo a la izquierda, se cierra solo. Aparece cuando la consulta periódica de pendientes (cada 30 a 60 s, `pollInterval`) trae una sesión que no estaba en la anterior.
@@ -96,7 +96,10 @@ Topbar: Reservas, Mis tutorías, Archivos, Avisos, Reseñas, Agente, Perfil.
 
 ### Agente
 
-- Pantalla de "próximamente" (decidido el 27-11-2026, aunque el BFF ya tiene `chatAgente` funcionando; ver `CLAUDE.md`). Más adelante: chat con un agente de IA que busca tutorías y reserva por el alumno.
+- Chat con un agente de IA que busca tutores y horarios y reserva por el alumno (`chatAgente`, ver `CLAUDE.md`). Es requisito del curso y se muestra en la demo.
+  - Ejemplos para empezar; Enter envía. Mientras piensa (hasta unos 2 minutos) muestra los segundos de espera y no deja enviar otro mensaje; no se reintenta.
+  - Si crea una reserva, lo indica con un enlace a Mis tutorías y las vistas de reservas se refrescan.
+  - "Nueva conversación" empieza de cero; la conversación se guarda mientras la pestaña esté abierta.
 
 ### Perfil
 

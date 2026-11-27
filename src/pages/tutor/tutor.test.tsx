@@ -10,6 +10,7 @@ import {
   CONFIRMAR_SESION,
   ELIMINAR_MATERIAL,
   EVALUACIONES_TUTOR,
+  FINALIZAR_SESION,
   MARCAR_CASILLA,
   MATERIAL_TUTOR,
   MIS_RAMOS,
@@ -128,6 +129,37 @@ describe('Calendario del tutor', () => {
     expect(modal).toHaveTextContent('Benja Alumno')
     await userEvent.click(within(modal).getByRole('button', { name: 'Cancelar sesión' }))
     expect(await screen.findByText('Sesión cancelada.')).toBeInTheDocument()
+  })
+
+  it('finaliza una sesión confirmada (para que el alumno pueda evaluarla)', async () => {
+    renderizar(<CalendarioTutor />, {
+      ruta: '/tutor',
+      mocks: [...mocks(), mock(FINALIZAR_SESION, { finalizarSesion: { __typename: 'Sesion', id: 's2', estado: 'FINALIZADA' } })],
+    })
+    await userEvent.click(await screen.findByRole('button', { name: 'Ver o cancelar la sesión' }))
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Finalizar sesión' }))
+    expect(await screen.findByText('Sesión finalizada. El alumno ya puede evaluarla.')).toBeInTheDocument()
+  })
+
+  it('una sesión confirmada en curso se puede finalizar, pero ya no cancelar', async () => {
+    const enCurso = sesion('s3', '2026-11-25T11:10:00.000Z', 'CONFIRMADA') // miércoles A: empezó 08:10
+    renderizar(<CalendarioTutor />, {
+      ruta: '/tutor',
+      mocks: [
+        misRamos(),
+        mock(SEMANA_TUTOR, {
+          disponibilidad: [casilla('c5', '2026-11-25T11:10:00.000Z', 'MAT1610', false)],
+          sesiones: [enCurso],
+        }),
+        mock(PENDIENTES, { sesiones: [] }),
+        mock(FINALIZAR_SESION, { finalizarSesion: { __typename: 'Sesion', id: 's3', estado: 'FINALIZADA' } }),
+      ],
+    })
+    await userEvent.click(await screen.findByRole('button', { name: 'Finalizar la sesión' }))
+    const modal = screen.getByRole('dialog', { name: 'Sesión en curso' })
+    expect(within(modal).queryByRole('button', { name: 'Cancelar sesión' })).not.toBeInTheDocument()
+    await userEvent.click(within(modal).getByRole('button', { name: 'Finalizar sesión' }))
+    expect(await screen.findByText('Sesión finalizada. El alumno ya puede evaluarla.')).toBeInTheDocument()
   })
 
   it('sin ramos activos invita a ir al perfil', async () => {

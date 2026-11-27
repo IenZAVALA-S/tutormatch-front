@@ -25,6 +25,7 @@ import {
   CANCELAR_SESION,
   CONFIRMAR_SESION,
   DESMARCAR_CASILLA,
+  FINALIZAR_SESION,
   MARCAR_CASILLA,
   MIS_RAMOS,
   PENDIENTES,
@@ -129,6 +130,7 @@ export function CalendarioTutor() {
   const [desmarcar] = useMutation(DESMARCAR_CASILLA, RECARGAR)
   const [confirmar] = useMutation(CONFIRMAR_SESION, RECARGAR)
   const [cancelar] = useMutation(CANCELAR_SESION, RECARGAR)
+  const [finalizar] = useMutation(FINALIZAR_SESION, RECARGAR)
   /** Inicios (ms) de las casillas con una acción en curso. */
   const [enCurso, setEnCurso] = useState<Set<number>>(() => new Set())
   const [sesionEnCurso, setSesionEnCurso] = useState<string | null>(null)
@@ -146,6 +148,8 @@ export function CalendarioTutor() {
   async function alElegir(estado: EstadoCasilla) {
     if (!ramo) return
     if (estado.tipo === 'pendiente' || estado.tipo === 'confirmada') return setElegida(estado)
+    // Una sesión confirmada que ya empezó (en curso) se puede finalizar.
+    if (estado.tipo === 'pasada' && estado.sesion?.estado === 'CONFIRMADA') return setElegida(estado)
     if (estado.tipo !== 'libre' && estado.tipo !== 'disponible') return
     setEnCurso(new Set([estado.inicio.getTime()]))
     await ejecutar(() =>
@@ -199,9 +203,10 @@ export function CalendarioTutor() {
     if (fallas > 0) mostrar(`${fallas} no se pudieron cambiar: ${mensajeError(ultimoError)}`, 'error')
   }
 
-  async function accionSesion(id: string, tipo: 'confirmar' | 'cancelar', exito: string) {
+  async function accionSesion(id: string, tipo: 'confirmar' | 'cancelar' | 'finalizar', exito: string) {
     setSesionEnCurso(id)
-    await ejecutar(() => (tipo === 'confirmar' ? confirmar : cancelar)({ variables: { id } }), exito)
+    const mutacion = { confirmar, cancelar, finalizar }[tipo]
+    await ejecutar(() => mutacion({ variables: { id } }), exito)
     setSesionEnCurso(null)
     setElegida(null)
   }
@@ -210,7 +215,10 @@ export function CalendarioTutor() {
   if (cargandoRamos) return <Cargando className="text-texto-suave" />
   if (errorRamos) return <p className="text-marca-700">{mensajeError(errorRamos)}</p>
 
-  const sesionElegida = elegida?.tipo === 'pendiente' || elegida?.tipo === 'confirmada' ? elegida.sesion : null
+  const sesionElegida =
+    elegida?.tipo === 'pendiente' || elegida?.tipo === 'confirmada' || elegida?.tipo === 'pasada'
+      ? (elegida.sesion ?? null)
+      : null
   const viernes = semana.dias[4]
 
   return (
@@ -300,7 +308,14 @@ export function CalendarioTutor() {
 
       <Modal
         abierto={!!sesionElegida}
-        titulo={elegida?.tipo === 'pendiente' ? 'Reserva pendiente' : 'Sesión confirmada'}
+        ancho="lg"
+        titulo={
+          elegida?.tipo === 'pendiente'
+            ? 'Reserva pendiente'
+            : elegida?.tipo === 'pasada'
+              ? 'Sesión en curso'
+              : 'Sesión confirmada'
+        }
         alCerrar={() => setElegida(null)}
         acciones={
           sesionElegida &&
@@ -323,13 +338,24 @@ export function CalendarioTutor() {
             </>
           ) : (
             <>
-              <Boton onClick={() => setElegida(null)}>Volver</Boton>
+              {/* Una sesión que ya empezó no se cancela: solo se finaliza. */}
+              {elegida?.tipo === 'confirmada' && (
+                <Boton
+                  tono="peligro"
+                  disabled={sesionEnCurso === sesionElegida.id}
+                  onClick={() => accionSesion(sesionElegida.id, 'cancelar', 'Sesión cancelada.')}
+                >
+                  Cancelar sesión
+                </Boton>
+              )}
               <Boton
-                tono="peligro"
+                tono="acento"
                 disabled={sesionEnCurso === sesionElegida.id}
-                onClick={() => accionSesion(sesionElegida.id, 'cancelar', 'Sesión cancelada.')}
+                onClick={() =>
+                  accionSesion(sesionElegida.id, 'finalizar', 'Sesión finalizada. El alumno ya puede evaluarla.')
+                }
               >
-                Cancelar sesión
+                Finalizar sesión
               </Boton>
             </>
           ))
@@ -347,6 +373,11 @@ export function CalendarioTutor() {
         )}
         {elegida?.tipo === 'confirmada' && (
           <p className="mt-4">Si la cancelas, el alumno la verá como cancelada y la casilla vuelve a quedar disponible.</p>
+        )}
+        {sesionElegida && elegida?.tipo !== 'pendiente' && (
+          <p className="mt-2">
+            Al finalizarla, el alumno puede dejar su reseña. Se finaliza sola al terminar el bloque.
+          </p>
         )}
       </Modal>
 

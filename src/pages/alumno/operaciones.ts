@@ -114,6 +114,23 @@ export const PERFIL_ALUMNO = graphql(`
   }
 `)
 
+/**
+ * Conversación con el agente. Puede tardar hasta unos 2 minutos: no se
+ * reintenta. El primer mensaje va sin conversacionId.
+ */
+export const CHAT_AGENTE = graphql(`
+  mutation ChatAgente($mensaje: String!, $conversacionId: String) {
+    chatAgente(mensaje: $mensaje, conversacionId: $conversacionId) {
+      respuesta
+      conversacionId
+      acciones {
+        id
+        tipo
+      }
+    }
+  }
+`)
+
 export const CREAR_SESION = graphql(`
   mutation CrearSesion($input: CrearSesionInput!) {
     crearSesion(input: $input) {

@@ -22,7 +22,7 @@ Front ──GraphQL──▶ BFF ──gRPC──▶ Usuarios, Sesiones, Materia
 - BFF: repo `dazztyn/BFF-TutorMatch` (NestJS + GraphQL, a cargo de Vicente). Su esquema completo está en su `schema.gql`, que se genera desde el código.
 - **Rutas relativas siempre** (`/graphql`, `/archivos`), nunca `http://localhost:3000`:
   - En desarrollo, el proxy de Vite reenvía `/graphql` y `/archivos` a `http://localhost:3000`.
-  - En Kubernetes, el ingress publica el front y el BFF en el mismo dominio: `/` al front, `/graphql` y `/archivos` al BFF.
+  - En Docker y Kubernetes, el nginx del front (`nginx.conf`) sirve el build y reenvía `/graphql` y `/archivos` al Service `bff:3000`. No hay ingress: el navegador ve un solo dominio.
   - Por eso el BFF no habilita CORS. Si el front se publicara en otro dominio, habría que pedírselo a Vicente.
 
 ### Levantar el BFF para desarrollar
@@ -106,11 +106,12 @@ El `stacktrace` de las respuestas es solo de desarrollo; no depender de él.
 
 - `Material` trae `tutorId` pero no el nombre del tutor. Se pidió agregar `tutor: Usuario`. **Mientras tanto, mostrar el id del tutor** donde iría el nombre, como recordatorio visible.
 
-## Pendiente para la entrega
+## Despliegue
 
-- Las pantallas que faltan (ver `docs/flujo.md`).
-- Un `Dockerfile`: nginx sirviendo el build, con la regla para que recargar una ruta como `/alumno/...` no dé 404 (todo lo que no sea un archivo va a `index.html`).
-- CI con tests y cobertura de al menos 60 %.
+- `Dockerfile`: build con Node 22 y nginx sin root en el puerto 8080. Recargar una ruta como `/alumno/...` devuelve `index.html`.
+- nginx reenvía `/graphql` y `/archivos` a `bff:3000`, con `client_max_body_size 11m` (archivos de hasta 10 MB) y `proxy_read_timeout 150s` (el agente tarda hasta unos 2 minutos). Resuelve `bff` al arrancar: aplicar el BFF antes que el front.
+- `k8s/front.yaml`: Deployment y Service `LoadBalancer` (Docker Desktop lo publica en `http://localhost`).
+- CI (`.github/workflows/ci.yml`): build, tests con cobertura ≥ 60 % y prueba de la imagen con un BFF falso.
 
 ## Convenciones
 

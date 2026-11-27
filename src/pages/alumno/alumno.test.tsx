@@ -3,13 +3,14 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RAMOS } from '../../auth/operaciones'
 import { obtenerSesion } from '../../auth/sesion'
-import { ALUMNO, conSesion, mock, renderizar } from '../../test/utilidades'
+import { ALUMNO, conSesion, mock, mockError, renderizar } from '../../test/utilidades'
 import { CANCELAR_SESION, EVALUACIONES_TUTOR } from '../tutor/operaciones'
 import { Agente } from './Agente'
 import { ArchivosAlumno } from './Archivos'
 import { Avisos } from './Avisos'
 import { MisTutorias } from './MisTutorias'
 import {
+  CHAT_AGENTE,
   CREAR_SESION,
   DISPONIBILIDAD_RAMO,
   EVALUAR,
@@ -278,9 +279,58 @@ describe('Perfil y Agente', () => {
     await waitFor(() => expect(obtenerSesion()?.usuario.esTutor).toBe(true))
   })
 
-  it('el agente es un "próximamente" con acceso a Reservas', () => {
-    renderizar(<Agente />)
-    expect(screen.getByText('Próximamente')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ir a Reservas' })).toHaveAttribute('href', '/alumno')
+})
+
+describe('Agente', () => {
+  const respuesta = (texto: string, conversacionId: string, acciones: object[] = []) => ({
+    chatAgente: { __typename: 'RespuestaAgente', respuesta: texto, conversacionId, acciones },
+  })
+
+  it('conversa, sigue la misma conversación y avisa cuando reserva', async () => {
+    const segundo = vi.fn(() => ({
+      data: respuesta('Listo, te reservé el jueves A con Tutora Prueba.', 'c1', [
+        { __typename: 'AccionAgente', id: 's9', tipo: 'sesion.creada' },
+      ]),
+    }))
+    renderizar(<Agente />, {
+      mocks: [
+        {
+          request: { query: CHAT_AGENTE, variables: { mensaje: 'Necesito Cálculo II', conversacionId: null } },
+          result: { data: respuesta('Encontré 2 horarios el jueves. ¿Reservo el A?', 'c1') },
+        },
+        { request: { query: CHAT_AGENTE, variables: { mensaje: 'Sí', conversacionId: 'c1' } }, result: segundo },
+      ],
+    })
+    expect(screen.getByText('¿En qué te ayudo?')).toBeInTheDocument()
+
+    await userEvent.type(screen.getByLabelText('Mensaje para el agente'), 'Necesito Cálculo II{Enter}')
+    expect(screen.getByText('Necesito Cálculo II')).toBeInTheDocument()
+    expect(await screen.findByText('Encontré 2 horarios el jueves. ¿Reservo el A?')).toBeInTheDocument()
+
+    await userEvent.type(screen.getByLabelText('Mensaje para el agente'), 'Sí')
+    await userEvent.click(screen.getByRole('button', { name: 'Enviar' }))
+    expect(await screen.findByText('Reserva creada')).toBeInTheDocument()
+    expect(segundo).toHaveBeenCalled()
+    expect(screen.getByRole('link', { name: 'Ver en Mis tutorías' })).toHaveAttribute('href', '/alumno/tutorias')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Nueva conversación' }))
+    expect(screen.getByText('¿En qué te ayudo?')).toBeInTheDocument()
+  })
+
+  it('mientras piensa no deja enviar otro mensaje', async () => {
+    renderizar(<Agente />, {
+      mocks: [{ request: { query: CHAT_AGENTE, variables: () => true }, result: { data: respuesta('Hola', 'c1') }, delay: 300 }],
+    })
+    await userEvent.click(screen.getByRole('button', { name: /Necesito ayuda con Cálculo II/ }))
+    expect(await screen.findByText(/Pensando…/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Mensaje para el agente')).toBeDisabled()
+    expect(await screen.findByText('Hola')).toBeInTheDocument()
+  })
+
+  it('muestra el error del agente y devuelve el texto para enviarlo de nuevo (sin reintentar solo)', async () => {
+    renderizar(<Agente />, { mocks: [mockError(CHAT_AGENTE, 'TOO_MANY_REQUESTS')] })
+    await userEvent.type(screen.getByLabelText('Mensaje para el agente'), 'Hola{Enter}')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Estás enviando mensajes muy seguido')
+    expect(screen.getByLabelText('Mensaje para el agente')).toHaveValue('Hola')
   })
 })

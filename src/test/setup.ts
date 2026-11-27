@@ -23,6 +23,7 @@ afterEach(() => {
   cleanup()
   limpiarSesion()
   localStorage.clear()
+  sessionStorage.clear()
   vi.useRealTimers()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()

@@ -4,7 +4,7 @@ import { ErrorLink } from '@apollo/client/link/error'
 import { CombinedGraphQLErrors, ServerError } from '@apollo/client/errors'
 import { limpiarSesion, obtenerToken, suscribirSesion } from '../auth/sesion'
 
-// Ruta relativa: proxy de Vite en desarrollo, ingress en Kubernetes.
+// Ruta relativa: proxy de Vite en desarrollo, nginx del front en Docker y Kubernetes.
 const http = new HttpLink({ uri: '/graphql' })
 
 /** Agrega `Authorization: Bearer <token>` si hay sesión. */
